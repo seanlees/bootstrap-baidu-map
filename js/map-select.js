@@ -1,22 +1,23 @@
-;(function($) {
+;(function ($) {
 
     var defaults = {
-        center_lat: 39.914515484866,
-        center_lng: 116.40431911725,
+        center_lat: 34.75661006,
+        center_lng: 113.64964385,
         zoom: 12,
         title: "设置坐标点",
         need_control: 1,
         readonly: 0,
-        lat: 39.914515484866,
-        lng: 116.40431911725,
-        city_name: "北京",
-        input_city_name: ""
+        lat: 34.75661006,
+        lng: 113.64964385,
+        city_name: "郑州",
+        input_city_name: "",
+        inputSuggest: false
     };
 
     var selectModalMap = new BMap.Map("select-modal-map", {enableMapClick: false});
     selectModalMap.centerAndZoom(new BMap.Point(defaults.center_lng, defaults.center_lat), defaults.zoom);
 
-    //selectModalMap.enableScrollWheelZoom();
+    selectModalMap.enableScrollWheelZoom();
     //selectModalMap.enableInertialDragging();
     //selectModalMap.enableContinuousZoom();
 
@@ -25,24 +26,74 @@
         anchor: BMAP_ANCHOR_TOP_LEFT,
         offset: size,
         // 切换城市之间事件
-        onChangeBefore: function() {
+        onChangeBefore: function () {
             // alert('before');
         },
         // 切换城市之后事件
-        onChangeAfter:function() {
+        onChangeAfter: function () {
             // alert('after');
         }
     }));
 
+    function G(id) {
+        return document.getElementById(id);
+    }
+
+    function inputSuggest() {
+        var ac = new BMap.Autocomplete(    //建立一个自动完成的对象
+            {
+                "input": "suggestId",
+                "location": selectModalMap
+            });
+
+        ac.addEventListener("onhighlight", function (e) {  //鼠标放在下拉列表上的事件
+            var str = "";
+            var _value = e.fromitem.value;
+            var value = "";
+            if (e.fromitem.index > -1) {
+                value = _value.province + _value.city + _value.district + _value.street + _value.business;
+            }
+            str = "FromItem<br />index = " + e.fromitem.index + "<br />value = " + value;
+
+            value = "";
+            if (e.toitem.index > -1) {
+                _value = e.toitem.value;
+                value = _value.province + _value.city + _value.district + _value.street + _value.business;
+            }
+            str += "<br />ToItem<br />index = " + e.toitem.index + "<br />value = " + value;
+            G("searchResultPanel").innerHTML = str;
+        });
+
+        var myValue;
+        ac.addEventListener("onconfirm", function (e) {    //鼠标点击下拉列表后的事件
+            var _value = e.item.value;
+            myValue = _value.province + _value.city + _value.district + _value.street + _value.business;
+            G("searchResultPanel").innerHTML = "onconfirm<br />index = " + e.item.index + "<br />myValue = " + myValue;
+
+            selectModalMap.clearOverlays();    //清除地图上所有覆盖物
+            function myFun(){
+                var pp = local.getResults().getPoi(0).point;    //获取第一个智能搜索的结果
+                selectModalMap.centerAndZoom(pp, 18);
+                selectModalMap.addOverlay(new BMap.Marker(pp));    //添加标注
+            }
+            var local = new BMap.LocalSearch(selectModalMap, { //智能搜索
+                onSearchComplete: myFun
+            });
+            local.search(myValue);
+        });
+
+    }
+
     var marker = null;
+
     function addMarker(point, canDrag) { //添加标识
-        if(marker) {
+        if (marker) {
             // selectModalMap.removeOverlay(marker); //清除标识
             marker.setPosition(point);
         } else {
             marker = new BMap.Marker(point);
-            if(canDrag) {
-                if($(".map-marker-drag").length > 0 && $(".map-marker-drag")[0].checked) {
+            if (canDrag) {
+                if ($(".map-marker-drag").length > 0 && $(".map-marker-drag")[0].checked) {
                     marker.enableDragging();
                 } else {
                     marker.disableDragging();
@@ -51,22 +102,25 @@
             selectModalMap.addOverlay(marker);
         }
     }
+
     function picker(e) {
         addMarker(e.point, true);
         selectModalMap.panTo(e.point);
     }
+
     function searchPoi(location, address, callback) {
-        if(typeof location === "string") {
+        if (typeof location === "string") {
             location = location != "西双版纳" ? location : "西双版纳傣族自治州";
 
-            if(location == '') {
+            if (location == '') {
                 alert("请选择城市以检索");
                 return;
             }
         }
 
+
         var search = new BMap.LocalSearch(location, {
-            onSearchComplete: function(result) {
+            onSearchComplete: function (result) {
                 if (result != null) {
                     var list = [];
                     for (var i = 0, len = result.getCurrentNumPois(); i < len; i++) {
@@ -86,19 +140,19 @@
         });
         search.search(address)
     }
+
     var target = null;
     var hasControl = 0;
 
     $.fn.extend({
         mapSelect: function (options) {
             var modal = $('#div-map-select').modal({show: false});
-
             var selecter = {};
             selecter.settings = $.extend({}, defaults, options);
-
+			
             modal.find('.modal-title').text(selecter.settings.title);
 
-            if(selecter.settings.need_control == 1 && hasControl == 0) {
+            if (selecter.settings.need_control == 1 && hasControl == 0) {
                 var topRightControl = new BMap.ScaleControl({anchor: BMAP_ANCHOR_TOP_RIGHT});// 右上角，添加比例尺
                 var topRightNavigation = new BMap.NavigationControl({anchor: BMAP_ANCHOR_TOP_RIGHT});  //右上角，添加默认缩放平移控件
                 selectModalMap.addControl(topRightControl);
@@ -113,25 +167,25 @@
 
             var that = $(this);
 
-            var init = function() {
-                that.bind("click", function(e) {
+            var init = function () {
+                that.bind("click", function (e) {
                     target = $(e.target);//e.currentTarget
                     var lat = target.data("lat");
                     var lng = target.data("lng");
-                    if(lat == 0) {
+                    if (lat == 0) {
                         lat = selecter.settings.center_lat;
                     }
-                    if(lng == 0) {
+                    if (lng == 0) {
                         lng = selecter.settings.center_lng;
                     }
                     modal.modal('show');
                     var point = new BMap.Point(lng, lat);
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var modalPoint = new BMap.Point(lng - 0.22, lat + 0.1);// If you use modal fade, use need this for modal happy.
                         selectModalMap.panTo(point);
                     }, 100);
 
-                    if(selecter.settings.readonly == 1) {
+                    if (selecter.settings.readonly == 1) {
                         addMarker(point, false);
 
                         selectModalMap.removeEventListener("click", picker);
@@ -140,12 +194,12 @@
                         addMarker(point, true);
 
                         var cityName = "";
-                        if(selecter.settings.input_city_name != "") {
-                            var inputCityName = $("input[name='" + selecter.settings.input_city_name  + "']");
-                            if(inputCityName.length > 0) {
+                        if (selecter.settings.input_city_name != "") {
+                            var inputCityName = $("input[name='" + selecter.settings.input_city_name + "']");
+                            if (inputCityName.length > 0) {
                                 cityName = inputCityName.val();
                             }
-                            if(cityName == "") {
+                            if (cityName == "") {
                                 cityName = selecter.settings.city_name;
                             }
                         } else {
@@ -153,7 +207,7 @@
                         }
 
                         var checkHtml = $(".map-header").html();
-                        if(checkHtml == "") {
+                        if (checkHtml == "") {
                             selectModalMap.addEventListener("click", picker);
 
                             var html = $("#map_select_template").html();
@@ -170,19 +224,19 @@
                                 searchFields: ["area_code", "area_name"],
                                 effectiveFieldsAlias: {area_code: "地区编码", area_name: "城市名称"},
                                 ignorecase: true,
-                                fnProcessData: function(result) {
+                                fnProcessData: function (result) {
                                     var value = [];
                                     var result = result.content.sub;
                                     var subData = [];
-                                    for(var i in result) {
-                                        if(result[i].area_type == 2) {
+                                    for (var i in result) {
+                                        if (result[i].area_type == 2) {
                                             value.push({
                                                 area_code: result[i].area_code,
                                                 area_name: result[i].area_name
                                             });
                                         } else {
                                             subData = result[i].sub;
-                                            for(var j in subData) {
+                                            for (var j in subData) {
                                                 value.push({
                                                     area_code: subData[j].area_code,
                                                     area_name: subData[j].area_name
@@ -200,8 +254,8 @@
                                 console.log('onUnsetSelectValue');
                             });
 
-                            $(".set-map-location").bind("click", function(e) {
-                                if(marker) {
+                            $(".set-map-location").bind("click", function (e) {
+                                if (marker) {
                                     var p = marker.getPosition();
                                     var lat = p.lat;
                                     var lng = p.lng;
@@ -217,14 +271,15 @@
                                     alert("请先在地图上设置点");
                                 }
                             });
-                            $(".map-address-search").bind("click", function(e) {
+                            $(".map-address-search").bind("click", function (e) {
                                 var cityName = $(".map-city").val();
                                 var address = $(".map-address").val();
                                 var location = cityName;
-                                if($(".map-search-type").length > 0 && $(".map-search-type")[0].checked) {
+                                if ($(".map-search-type").length > 0 && $(".map-search-type")[0].checked) {
                                     location = selectModalMap;
                                 }
-                                searchPoi(location, address, function(data) {
+
+                                searchPoi(location, address, function (data) {
                                     if (data == undefined) {
                                         alert("没有查到数据");
                                     } else {
@@ -244,13 +299,13 @@
                                 });
                             });
 
-                            $(".map-marker-drag").bind("change", function(e) {
-                                if(this.checked) {
-                                    if(marker) {
+                            $(".map-marker-drag").bind("change", function (e) {
+                                if (this.checked) {
+                                    if (marker) {
                                         marker.enableDragging();
                                     }
                                 } else {
-                                    if(marker) {
+                                    if (marker) {
                                         marker.disableDragging();
                                     }
                                 }
@@ -260,30 +315,34 @@
                         }
                         modal.modal('show');
                     }
+
+                    if(selecter.settings.inputSuggest) {
+                        inputSuggest();
+                    }
                 });
                 selecter.initialized = true;
             };
 
-            el.setDefaultValue = function() {
+            el.setDefaultValue = function () {
                 el.setValue(selecter.settings.center_lat, selecter.settings.center_lng);
             };
 
-            el.setValue = function(lat, lng) {
+            el.setValue = function (lat, lng) {
                 that.val("baidu:" + lat + "," + lng);
                 that.attr("data-lat", lat);
                 that.attr("data-lng", lng);
             };
 
-            el.rebind = function() {
-                if(selecter.initialized) {
+            el.rebind = function () {
+                if (selecter.initialized) {
                     return;
                 }
 
                 init();
             };
 
-            el.destroySelecter = function() {
-                if(!selecter.initialized) {
+            el.destroySelecter = function () {
+                if (!selecter.initialized) {
                     return;
                 }
                 that.unbind("click");

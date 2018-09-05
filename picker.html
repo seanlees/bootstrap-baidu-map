@@ -57,6 +57,10 @@
 			    height: 400px;
 			}
 		}
+		.tangram-suggestion-main {
+			z-index: 999999;
+		}
+
 
 	</style>
 </head>
@@ -109,8 +113,9 @@
 	            </div>
 	            <!-- /btn-group -->
 	        </div>
-	        <input type="text" class="form-control map-address" placeholder="检索地点" />
-	        <input type="button" class="btn btn-primary map-address-search" value="检索" />
+	        <input type="text" id="suggestId" class="form-control map-address" placeholder="检索地点" />
+	        <input type="button"  class="btn btn-primary map-address-search" value="检索" />
+			<div id="searchResultPanel" style="border:1px solid #C0C0C0;width:150px;height:auto; display:none;z-index:9999"></div>
 	        <input type="button" class="btn btn-primary set-map-location" value="设置坐标点" />
 	        <div class="checkbox">
 	            <label>
@@ -121,9 +126,10 @@
 	            </label>
 	        </div>
 	    </div>
+		
 	</script>
 
-	<script src="https://api.map.baidu.com/api?v=2.0&s=1&ak=GGTQBCpsjlF8DUkmHGgxMXyV"></script>
+	<script src="https://api.map.baidu.com/api?v=2.0&s=1&ak=SNeCSpBu3puxVBwaYGBPeH4aeu2nnYvI"></script>
 	<!-- jQuery 2.1.4 -->
     <script src="./js/jQuery/jQuery-2.1.4.min.js"></script>
 	<!-- Bootstrap 3.3.5 -->
@@ -140,6 +146,7 @@
 	    });
 		$("input[name='lnglat_rw']").mapSelect({
 	        title: "设置坐标点",
+			inputSuggest:true,
 	        callback: function() {
 	        }
 	    });
